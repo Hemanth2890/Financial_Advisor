@@ -39,3 +39,7 @@ HOW TO RUN LOCALLY
 
 # SAMPLE INPUT AND OUTPUT
 ![image](https://github.com/user-attachments/assets/24cc1e8f-399c-4b4e-9761-25425a0a7cb8)
+![image](https://github.com/user-attachments/assets/ff7c42de-2428-488c-a7c8-6f7957498c60)
+![image](https://github.com/user-attachments/assets/94dd2b11-7962-484a-8067-28c75be98a97)
+
+
