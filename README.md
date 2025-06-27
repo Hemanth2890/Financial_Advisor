@@ -37,3 +37,5 @@ HOW TO RUN LOCALLY
             streamlit run app.py
 
 
+# SAMPLE INPUT AND OUTPUT
+![image](https://github.com/user-attachments/assets/24cc1e8f-399c-4b4e-9761-25425a0a7cb8)
