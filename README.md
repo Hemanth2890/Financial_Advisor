@@ -8,9 +8,27 @@ FEATURES
 4. Easy-to-use Streamlit web interface
 5. Styled using basic css
 
+
 TECHNICAL STACK
 1. Frontend/UI: Streamlit
 2. Backend: Python
 3. AI Model: Google Generative AI (Gemini 2.0 Flash)
 4. API Handling: google-generativeai
 5. Environment Management: python-dotenv
+
+
+HOW TO RUN LOCALLY
+1. Clone the repo
+   git clone https://github.com/your-username/finance-tip-generator.git
+   cd finance-tip-generator
+
+2. Install dependencies
+   pip install -r requirements.txt
+
+3. Set your API key by creating a .env file
+   GEMINI_API_KEY=your_actual_key_here
+
+4. Run the app
+   streamlit run app.py
+
+
