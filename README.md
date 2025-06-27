@@ -20,17 +20,20 @@ TECHNICAL STACK
 HOW TO RUN LOCALLY
 1. Clone the repo
 
-   git clone https://github.com/your-username/finance-tip-generator.git
+      git clone https://github.com/your-username/finance-tip-generator.git
 
-   cd finance-tip-generator
+      cd finance-tip-generator
 
 3. Install dependencies
-   pip install -r requirements.txt
 
-4. Set your API key by creating a .env file
-   GEMINI_API_KEY=your_actual_key_here
+      pip install -r requirements.txt
 
-5. Run the app
-   streamlit run app.py
+5. Set your API key by creating a .env file
+
+      GEMINI_API_KEY=your_actual_key_here
+
+7. Run the app
+
+      streamlit run app.py
 
 
