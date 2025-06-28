@@ -11,7 +11,7 @@ FEATURES
 
 TECHNICAL STACK
 1. Frontend/UI: Streamlit
-2. Backend: Python
+2. Backend: Python (3.13.5)
 3. AI Model: Google Generative AI (Gemini 2.0 Flash)
 4. API Handling: google-generativeai
 5. Environment Management: python-dotenv
