@@ -20,9 +20,9 @@ TECHNICAL STACK
 HOW TO RUN LOCALLY
 1. Clone the repo
 
-            git clone https://github.com/your-username/finance-tip-generator.git
+            git clone https://github.com/your-username/Financial_Advisor.git
 
-            cd finance-tip-generator
+            cd Financial_Advisor
 
 3. Install dependencies
 
