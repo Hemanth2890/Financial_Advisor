@@ -1,45 +1,97 @@
-# Personal Finance Tip Generator using Generative AI
-Get personalized financial advice based on your monthly income and expenses — powered by Google Gemini 2.0 Flash and built with Streamlit.
+# Agentic Financial Advisory Platform
 
-FEATURES
-1. Uses Google Gemini Pro (2.0 Flash) for AI-powered suggestions
-2. Inputs: income, rent, food, subscriptions, transport, insurance, investments, and savings goal
-3. Outputs savings insights and personalized tips in a friendly format
-4. Easy-to-use Streamlit web interface
-5. Styled using basic css
+A multi-agent financial advisory system that analyzes a monthly budget, classifies spending into essential and discretionary categories, retrieves context from similar past advisory sessions, and generates personalized savings recommendations. The pipeline is orchestrated with LangGraph and served through a FastAPI backend, with Celery and Redis handling asynchronous execution and PostgreSQL with pgvector providing RAG-based memory of prior sessions.
 
+## Overview
 
-TECHNICAL STACK
-1. Frontend/UI: Streamlit
-2. Backend: Python (3.13.5)
-3. AI Model: Google Generative AI (Gemini 2.0 Flash)
-4. API Handling: google-generativeai
-5. Environment Management: python-dotenv
+Generic budgeting advice tends to ignore two things: how a person's specific spending compares to reasonable benchmarks for their income, and whether anything similar has come up before. This platform addresses both. A categorization agent flags spending categories that look high relative to income, an analysis agent computes exact savings metrics, and a recommendation agent uses Gemini 2.0 Flash to write advice that is grounded in both the current numbers and relevant prior sessions retrieved through vector search.
 
+## Architecture
 
-HOW TO RUN LOCALLY
-1. Clone the repo
+```
+Client --> FastAPI /advise --> Celery task --> LangGraph pipeline
+                                                    |
+                  PostgreSQL (pgvector) <-- AdvisorySession
+                                                    |
+                                      analyze -> categorize -> retrieve_memory
+                                                              -> recommend (Gemini)
+```
 
-            git clone https://github.com/your-username/Financial_Advisor.git
+### Agents
 
-            cd Financial_Advisor
+- `FinancialAnalysisAgent` - computes total expenses, monthly savings, savings rate, and months to reach the savings goal. Pure arithmetic, no LLM call, so the numbers are always exact.
+- `TransactionCategorizationAgent` - classifies budget categories into essential and discretionary spending and flags any category that exceeds a standard income-based benchmark (e.g. rent above 35 percent of income). Operates on category-level budget inputs (rent, food, subscriptions, transport, insurance, investments); it does not ingest individual transaction line items, since the platform does not currently accept itemized transaction data.
+- `SavingsRecommendationAgent` - generates the final advice with Gemini 2.0 Flash, conditioned on the analysis, the categorization flags, and similar past sessions retrieved via RAG. Falls back to a template-based recommendation if no API key is configured, clearly labeled in the response.
 
-3. Install dependencies
+### Infrastructure
 
-            pip install -r requirements.txt
+- `api/main.py` - FastAPI service: `POST /advise`, `GET /advise/status/{id}`, `GET /advise/result/{id}`, `GET /history/{user_id}`.
+- `tasks/celery_app.py` - Celery task wrapping the full LangGraph pipeline and persisting the session and its embedding, run in a background worker so the API returns immediately.
+- `rag/memory.py` - generates real semantic embeddings with `fastembed` (BAAI/bge-small-en-v1.5, ONNX runtime, no GPU required) for each session summary, and retrieves the most similar past sessions via pgvector cosine distance (or an in-process numpy fallback for local SQLite development).
+- `db/models.py` - SQLAlchemy `AdvisorySession` table storing the budget profile, analysis, categorization, recommendation, and embedding for each session.
 
-5. Set your API key by creating a .env file
+## Setup
 
-            GEMINI_API_KEY=your_actual_key_here
+### 1. Configure Gemini
 
-7. Run the app
+```bash
+export GEMINI_API_KEY="..."
+```
 
-            streamlit run app.py
+Without this, recommendations fall back to a template built from the deterministic analysis and categorization flags rather than failing; the response is labeled accordingly.
 
+### 2. Local run (no Docker, no Redis, no Postgres)
 
-# SAMPLE INPUT AND OUTPUT
-![image](https://github.com/user-attachments/assets/24cc1e8f-399c-4b4e-9761-25425a0a7cb8)
-![image](https://github.com/user-attachments/assets/ff7c42de-2428-488c-a7c8-6f7957498c60)
-![image](https://github.com/user-attachments/assets/94dd2b11-7962-484a-8067-28c75be98a97)
+```bash
+pip install -r requirements.txt
+PYTHONPATH=. CELERY_TASK_ALWAYS_EAGER=true python scripts/run_local.py
+```
 
+This runs two sessions for the same user back to back; the second should retrieve the first from RAG memory. The first run downloads the embedding model from Hugging Face (a few hundred MB, one-time).
 
+### 3. Full stack (API, Celery worker, Redis, Postgres with pgvector)
+
+```bash
+docker compose up --build
+curl -X POST localhost:8002/advise -H "Content-Type: application/json" \
+  -d '{"user_id": "demo", "income": 80000, "rent": 25000, "food": 8000, "subscriptions": 2000, "transport": 5000, "insurance": 3000, "investments": 10000, "savings_goal": 500000}'
+curl localhost:8002/advise/status/<task_id>
+curl localhost:8002/advise/result/<task_id>
+```
+
+## API Reference
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/advise` | POST | Submit a budget profile, kicks off the async advisory pipeline |
+| `/advise/status/{task_id}` | GET | Celery task state |
+| `/advise/result/{task_id}` | GET | Full pipeline output: analysis, categorization, retrieved sessions, recommendation |
+| `/history/{user_id}` | GET | Past sessions for a user |
+| `/health` | GET | Health check |
+
+## Project Structure
+
+```
+agents/
+  analysis_agent.py        deterministic budget arithmetic
+  categorization_agent.py  category-level essential/discretionary classification and benchmarking
+  recommendation_agent.py  Gemini-based recommendation generation, with fallback
+  graph.py                 LangGraph StateGraph orchestrating all three agents
+api/
+  main.py                  FastAPI service
+tasks/
+  celery_app.py            async pipeline execution and session persistence
+rag/
+  memory.py                session embedding and pgvector/numpy similarity retrieval
+db/
+  models.py                SQLAlchemy models
+scripts/
+  run_local.py             local end-to-end test runner
+Dockerfile
+docker-compose.yml
+requirements.txt
+```
+
+## License
+
+MIT
